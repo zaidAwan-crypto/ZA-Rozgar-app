@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rozgaar Connect - Professional</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f0f2f5; color: #333; }
+        
+        /* Auth Screen */
+        .auth-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .card { background: white; padding: 35px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); width: 100%; max-width: 400px; text-align: center; }
+        .card h2 { color: #1a73e8; margin-bottom: 5px; font-size: 24px; }
+        .role-select { display: flex; justify-content: space-between; margin: 20px 0; background: #e8f0fe; padding: 4px; border-radius: 8px; }
+        .role-btn { flex: 1; padding: 10px; border: none; background: transparent; color: #5f6368; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .role-btn.active { background: #1a73e8; color: white; box-shadow: 0 2px 5px rgba(26,115,232,0.3); }
+        
+        input, select, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #dadce0; border-radius: 8px; font-size: 14px; }
+        input:focus, select:focus, textarea:focus { border-color: #1a73e8; outline: none; }
+        
+        .btn { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: 600; margin-top: 10px; }
+        .btn:hover { background: #1557b0; }
+        .btn-danger { background: #d93025; }
+        .btn-danger:hover { background: #b31412; }
+        .btn-secondary { background: #5f6368; }
+        .btn-secondary:hover { background: #444746; }
+        
+        .switch { margin-top: 20px; font-size: 14px; color: #1a73e8; cursor: pointer; font-weight: 500; }
+        
+        /* Main Dashboard */
+        #appScreen { display: none; }
+        header { background: #1a73e8; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .menu-icon { font-size: 26px; cursor: pointer; }
+        .header-title { font-size: 18px; font-weight: 600; }
+        .badge { background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+
+        /* Sidebar */
+        .sidebar { height: 100%; width: 0; position: fixed; z-index: 1000; top: 0; left: 0; background-color: #ffffff; overflow-x: hidden; transition: 0.3s; box-shadow: 4px 0 15px rgba(0,0,0,0.1); padding-top: 60px; }
+        .sidebar a { padding: 15px 25px; text-decoration: none; font-size: 16px; color: #3c4043; display: block; font-weight: 500; border-bottom: 1px solid #f1f3f4; cursor: pointer; }
+        .sidebar a:hover { background: #f8f9fa; color: #1a73e8; }
+        .sidebar .close-btn { position: absolute; top: 15px; right: 20px; font-size: 30px; color: #5f6368; border: none; background: none; cursor: pointer; }
+
+        .main-container { padding: 20px; max-width: 700px; margin: auto; }
+        .box { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .box h3 { margin-bottom: 15px; color: #202124; font-size: 18px; }
+        
+        .card-item { border: 1px solid #e0e0e0; padding: 15px; border-radius: 8px; margin-bottom: 12px; background: #fafafa; cursor: pointer; transition: 0.2s; }
+        .card-item:hover { border-color: #1a73e8; background: #f8faff; }
+        .card-item h4 { color: #1a73e8; margin-bottom: 5px; }
+        .card-item p { font-size: 14px; color: #5f6368; margin-bottom: 5px; }
+        
+        /* Custom Khubsurat Modal Popup */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 20px; }
+        .modal-box { background: white; width: 100%; max-width: 450px; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: fadeIn 0.3s ease; max-height: 90vh; overflow-y: auto; text-align: left; }
+        .modal-box h3 { color: #1a73e8; margin-bottom: 10px; }
+        .modal-box p { font-size: 14px; color: #444; margin-bottom: 10px; line-height: 1.5; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 15px; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- AUTH SCREEN -->
+    <div id="authScreen" class="auth-container">
+        <div class="card">
+            <h2>Rozgaar Connect</h2>
+            <p style="color: #5f6368; font-size: 13px; margin-bottom: 15px;">Local Workforce Platform</p>
+            
+            <div class="role-select">
+                <button class="role-btn active" onclick="setAuthRole('client')">Client</button>
+                <button class="role-btn" onclick="setAuthRole('worker')">Worker</button>
+            </div>
+
+            <form id="authForm" onsubmit="handleAuth(event)">
+                <h3 id="formHeading" style="margin-bottom: 15px; font-size: 16px; color: #3c4043;">Client Signup</h3>
+                
+                <input type="text" id="name" placeholder="Pura Naam (Full Name)" required>
+                <input type="text" id="phone" placeholder="Phone Number (e.g. 03001234567)" required>
+                
+                <div id="workerExtraFields" class="hidden">
+                    <select id="skill">
+                        <option value="Mistari">Mistari (Mason)</option>
+                        <option value="Mazdoor">General Mazdoor</option>
+                        <option value="Electrician">Electrician</option>
+                        <option value="Painter">Painter</option>
+                        <option value="Plumber">Plumber</option>
+                    </select>
+                </div>
+
+                <input type="text" id="area" placeholder="Aapka Ilaqa (e.g. Johar Town, Lahore)" required>
+                <input type="password" id="password" placeholder="Password" required>
+
+                <button type="submit" class="btn" id="submitBtn">Sign Up</button>
+            </form>
+
+            <p class="switch" onclick="toggleAuthMode()"><span id="switchText">Already have an account? Login</span></p>
+        </div>
+    </div>
+
+    <!-- MAIN APP SCREEN -->
+    <div id="appScreen">
+        <header>
+            <span class="menu-icon" onclick="openSidebar()">&#9776;</span>
+            <span class="header-title" id="headerTitle">Dashboard</span>
+            <span id="userBadge" class="badge">Client</span>
+        </header>
+
+        <!-- Sidebar -->
+        <div id="mySidebar" class="sidebar">
+            <button class="close-btn" onclick="closeSidebar()">&times;</button>
+            <a href="#" onclick="showSection('home')">🏠 Home / Feed</a>
+            <a href="#" onclick="showSection('myAds')">📋 Meri Posts / My Ads</a>
+            <a href="#" onclick="showSection('findManual')">🔍 Browse All Posts</a>
+            <a href="#" onclick="switchActiveMode()" id="modeSwitchText">🔄 Switch Mode</a>
+            <a href="#" onclick="showSection('editProfile')">⚙️ Edit Profile</a>
+            <a href="#" onclick="showSection('contact')">💬 Contact Admin Support</a>
+            <a href="#" onclick="logout()" style="color: #d93025; font-weight: 600;">🚪 Logout</a>
+        </div>
+
+        <div class="main-container" id="mainContainer"></div>
+    </div>
+
+    <!-- CUSTOM DYNAMIC MODAL POPUP -->
+    <div id="customModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 id="modalTitle">Tafseel</h3>
+            <div id="modalBody"></div>
+            <div id="modalFooter" class="modal-buttons"></div>
+        </div>
+    </div>
+
+    <script>
+        let authRole = 'client';
+        let isLoginMode = false;
+
+        function setAuthRole(role) {
+            authRole = role;
+            document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const workerFields = document.getElementById('workerExtraFields');
+            if(role === 'worker') {
+                workerFields.classList.remove('hidden');
+            } else {
+                workerFields.classList.add('hidden');
+            }
+            updateFormTitles();
+        }
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            const nameField = document.getElementById('name');
+            const workerFields = document.getElementById('workerExtraFields');
+            const areaField = document.getElementById('area');
+            const submitBtn = document.getElementById('submitBtn');
+            const switchText = document.getElementById('switchText');
+
+            if(isLoginMode) {
+                nameField.style.display = 'none';
+                nameField.required = false;
+                areaField.style.display = 'none';
+                areaField.required = false;
+                if(authRole === 'worker') workerFields.style.display = 'none';
+                submitBtn.innerText = "Login";
+                switchText.innerText = "Don't have an account? Sign Up";
+            } else {
+                nameField.style.display = 'block';
+                nameField.required = true;
+                areaField.style.display = 'block';
+                areaField.required = true;
+                if(authRole === 'worker') workerFields.style.display = 'block';
+                submitBtn.innerText = "Sign Up";
+                switchText.innerText = "Already have an account? Login";
+            }
+            updateFormTitles();
+        }
+
+        function updateFormTitles() {
+            document.getElementById('formHeading').innerText = `${authRole.toUpperCase()} ${isLoginMode ? 'Login' : 'Signup'}`;
+        }
+
+        function handleAuth(event) {
+            event.preventDefault();
+            let phone = document.getElementById('phone').value;
+            let password = document.getElementById('password').value;
+            let users = JSON.parse(localStorage.getItem('rozgaar_users')) || [];
+
+            if(isLoginMode) {
+                let user = users.find(u => u.phone === phone && u.password === password);
+                if(user) {
+                    user.activeRole = user.role;
+                    localStorage.setItem('logged_user', JSON.stringify(user));
+                    startApp(user);
+                } else {
+                    showAlert("Kharabi", "Ghalat Phone Number ya Password!");
+                }
+            } else {
+                let name = document.getElementById('name').value;
+                let area = document.getElementById('area').value;
+                let skill = authRole === 'worker' ? document.getElementById('skill').value : '';
+
+                let existing = users.find(u => u.phone === phone);
+                if(existing) {
+                    showAlert("Dhyan Dein", "Ye phone number pehle se registered hai!");
+                    return;
+                }
+
+                let newUser = { name, phone, password, role: authRole, activeRole: authRole, area, skill };
+                users.push(newUser);
+                localStorage.setItem('rozgaar_users', JSON.stringify(users));
+                localStorage.setItem('logged_user', JSON.stringify(newUser));
+                
+                showAlert("Mubarak Ho", "Account kamyabi se ban gaya!");
+                startApp(newUser);
+            }
+        }
+
+        function startApp(user) {
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('appScreen').style.display = 'block';
+            renderDashboard();
+        }
+
+        function renderDashboard() {
+            let user = JSON.parse(localStorage.getItem('logged_user'));
+            document.getElementById('headerTitle').innerText = `Welcome, ${user.name}`;
+            document.getElementById('userBadge').innerText = user.activeRole.toUpperCase();
+            
+            let switchTextEl = document.getElementById('modeSwitchText');
+            switchTextEl.innerHTML = user.activeRole === 'client' ? "🔄 Switch to Worker Mode" : "🔄 Switch to Client Mode";
+
+            showSection('home');
+        }
+
+        function switchActiveMode() {
+            let user = JSON.parse(localStorage.getItem('logged_user'));
+            user.activeRole = user.activeRole === 'client' ? 'worker' : 'client';
+            localStorage.setItem('logged_user', JSON.stringify(user));
+            closeSidebar();
+            renderDashboard();
+        }
+
+        function showSection(sectionName) {
+            closeSidebar();
+            let container = document.getElementById('mainContainer');
+            let user = JSON.parse(localStorage.getItem('logged_user'));
+
+            if(sectionName === 'home') {
+                if(user.activeRole === 'client') {
+                    container.innerHTML = `
+                        <div class="box">
+                            <h3>📢 Naya Kaam Post Karein</h3>
+                            <form onsubmit="postJob(event)">
+                                <input type="text" id="jobTitle" placeholder="Kaam ki tafseel (e.g. Pluster karna ha)" required>
+                                <input type="text" id="jobBudget" placeholder="Aapka Budget (e.g. 1500 PKR)" required>
+                                <button type="submit" class="btn">Post Job</button>
+                            </form>
+                        </div>
+                        <div class="box">
+                            <h3>📋 Available Workers in Area</h3>
+                            <div id="workersList"></div>
+                        </div>
+                    `;
+                    loadWorkersList();
+                } else {
+                    container.innerHTML = `
+                        <div class="box">
+                            <h3>🛠️ Apni Service / Dihari Post Karein</h3>
+                            <form onsubmit="postWorkerService(event)">
+                                <input type="text" id="serviceTitle" placeholder="Kaam ki tafseel (e.g. Mason for Roof Repair)" required>
+                                <select id="rateType" required>
+                                    <option value="Per Hour">Per Hour (Ghanta)</option>
+                                    <option value="Per Day">Per Day (Din)</option>
+                                    <option value="Per Week">Per Week (Hafta)</option>
+                                    <option value="Per Month">Per Month (Mahina)</option>
+                                </select>
+                                <input type="text" id="serviceDemand" placeholder="Kitne paise chahiye? (e.g. 900 PKR)" required>
+                                <button type="submit" class="btn">Live Karein</button>
+                            </form>
+                        </div>
+                        <div class="box">
+                            <h3>🔍 Available Client Jobs (Market Feed)</h3>
+                            <div id="workerMarketJobs"></div>
+                        </div>
+                    `;
+                    loadWorkerMarketJobs();
+                }
+            } else if(sectionName === 'myAds') {
+                container.innerHTML = `
+                    <div class="box">
+                        <h3>📋 Meri Live Posts / Ads</h3>
+                        <div id="myAdsList" style="margin-top: 15px;"></div>
+                    </div>
+                `;
+                loadMyAds();
+            } else if(sectionName === 'findManual') {
+                container.innerHTML = `
+                    <div class="box">
+                        <h3>🔍 Browse All Posts (Click to View Full Detail)</h3>
+                        <div id="manualList" style="margin-top: 15px;"></div>
+                    </div>
+                `;
+                loadManualBrowse();
+            } else if(sectionName === 'editProfile') {
+                container.innerHTML = `
+                    <div class="box">
+                        <h3>⚙️ Profile Edit Karein</h3>
+                        <form onsubmit="updateProfile(event)">
+                            <input type="text" id="editName" value="${user.name}" required>
+                            <input type="text" id="editArea" value="${user.area}" required>
+                            <input type="password" id="editPass" value="${user.password}" required>
+                            <button type="submit" class="btn">Update</button>
+                        </form>
+                    </div>
+                `;
+            } else if(sectionName === 'contact') {
+                container.innerHTML = `
+                    <div class="box">
+                        <h3>💬 Contact Admin Support</h3>
+                        <form onsubmit="sendContactMsg(event)">
+                            <textarea id="contactMsg" placeholder="Apna masla yahan likhein..." rows="4" required></textarea>
+                            <button type="submit" class="btn">Send Message</button>
+                        </form>
+                    </div>
+                `;
+            }
+        }
+
+        // Post Job (Client)
+        function postJob(event) {
+            event.preventDefault();
+            let user = JSON.parse(localStorage.getItem('logged_user'));
+            let jobs = JSON.parse(localStorage.getItem('rozgaar_jobs')) || [];
+            jobs.push({ id: String(Date.now()), clientName: user.name, clientPhone: user.phone, area: user.area, title: document.getElementById('jobTitle').value, budget: document.getElementById('jobBudget').value });
+            localStorage.setItem('rozgaar_jobs', JSON.stringify(jobs));
+            showAlert("Kamyabi", "Kaam post ho gaya!");
+            document.getElementById('jobTitle').value = '';
+            document.getElementById('jobBudget').value = '';
+            loadWorkersList();
+        }
+
+        // Post Service (Worker)
+        function postWorkerService(event) {
+            event.preventDefault();
+            let user = JSON.parse(localStorage.getItem('logged_user'));
+            let services = JSON.parse(localStorage.getItem('rozgaar_services')) || [];
+            services.push({ id: String(Date.now()), workerName: user.name, workerPhone: user.phone, skill: user.skill || 'Worker', area: user.area, title: document.getElementById('serviceTitle').value, rateType: document.getElementById('rateType').value, demand: document.getElementById('serviceDemand').value });
+            localStorage.setItem('rozgaar_services', JSON.stringify(services));
+            showAlert("Kamyabi", "Aapki service live kar di gayi hai!");
+            document.getElementById('serviceTitle').value = '';
+            document.getElementById('serviceDemand').value = '';
+            loadWorkerMarketJobs();
+        }
+
+        // Load Workers Feed for Client (Phone visible directly)
+        function loadWorkersList() {
+            let services = JSON.parse(localStorage.getItem('rozgaar_services')) || [];
+            let div = document.getElementById('workersList');
+            if(!div) return;
+            if(services.length === 0) { div.innerHTML = `<p style="color:#777; font-size:14px;">Koi worker abhi online nahi hai.</p>`; return; }
+            let html = '';
+            services.forEach((s) => {
+                html += `<div class="card-item" onclick="openFullDetail('${s.id}', 'service')">
+                    <h4>${s.workerName} (${s.skill})</h4>
+                    <p>Ilaqa: ${s.area} | Rate: ${s.demand} (${s.rateType})</p>
+                    <p style="color:#1a73e8; font-weight:600;">📞 Phone: ${s.workerPhone}</p>
+                    <small style="color:#5f6868;">Poori tafseel ke liye click karein...</small>
+                </div>`;
+            });
+            div.innerHTML = html;
+        }
+
+        // Load Client Jobs for Worker (Phone visible directly)
+        function loadWorkerMarketJobs() {
+            let jobs = JSON.parse(localStorage.getItem('rozgaar_jobs')) || [];
+            let div = document.getElementById('workerMarketJobs');
+            if(!div) return;
+            if(jobs.length === 0) { div.innerHTML = `<p style="color:#777; font-size:14px;">Filhal koi client job nahi hai.</p>`; return; }
+            let html = '';
+            jobs.forEach((j) => {
+                html += `<div class="card-item" onclick="openFullDetail('${j.id}', 'job')">
+                    <h4>${j.clientName} (${j.area})</h4>
+                    <p>Kaam: ${j.title}</p>
+                    <p style="color:#1a73e8; font-weight:600;">📞 Phone: ${j.clientPhone}</p>
+                    <small style="color:#5f6868;">Poori tafseel ke liye click karein...</small>
+                </div>`;
+            });
+            div.innerHTML = html;
+        }
+
+        // FULL SCREEN DETAIL VIEW (Phone revealed directly here too)
+        function openFullDetail(id, type) {
+            let container = document.getElementById('mainContainer');
+            if(type === 'job') {
+                let jobs = JSON.parse(localStorage.getItem('rozgaar_jobs')) || [];
+                let j = jobs.find(x => String(x.id) === String(id));
+                if(!j) { showAlert("Error", "Yeh job nahi mili!"); return; }
+                container.innerHTML = `
+                    <div class="box">
+                        <button class="btn btn-secondary" style="width:auto; padding:6px 12px; margin-bottom:15px;" onclick="showSection('home')">← Wapis Jayein</button>
+                        <h3 style="color:#1a73e8; font-size:22px; margin-bottom:15px;">📋 Job Description</h3>
+                        <p style="font-size:15px; margin-bottom:10px;"><b>Client Naam:</b> ${j.clientName}</p>
+                        <p style="font-size:16px; margin-bottom:10px; background:#e8f0fe; padding:10px; border-radius:6px;"><b>📞 Phone Number:</b> <a href="tel:${j.clientPhone}" style="color:#1a73e8; text-decoration:none; font-weight:bold;">${j.clientPhone}</a></p>
+                        <p style="font-size:15px; margin-bottom:10px;"><b>Ilaqa (Area):</b> ${j.area}</p>
+                        <p style="font-size:15px; margin-bottom:10px;"><b>Budget:</b> ${j.budget}</p>
+                        <div style="background:#f8f9fa; padding:15px; border-radius:8px; margin:15px 0; border:1px solid #e0e0e0;">
+                            <b style="display:block; margin-bottom:5px; color:#333;">Kaam ki Tafseel (Description):</b>
+                            <p style="color:#555; line-height:1.6; font-size:15px;">${j.title}</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                let services = JSON.parse(localStorage.getItem('rozgaar_services')) || [];
+                let s = services.find(x => String(x.id) === String(id));
+                if(!s) { showAlert("Error", "Yeh service nahi mili!"); return; }
+                container.innerHTML = `
+                    <div class="box">
+                        <button class="btn btn-secondary" style="width:auto; padding:6px 12px; margin-bottom:15px;" onclick="showSection('home')">← Wapis Jayein</button>
+                        <h3 style="color:#1a73e8; font-size:22px; margin-bottom:15px;">🛠️ Worker Service Detail</h3>
+                        <p style="font-size:15px; margin-bottom:10px;"><b>Worker Naam:</b> ${s.workerName}</p>
+                        <p style="font-size:16px; margin-bottom:10px; background:#e8f0fe; padding:10px; border-radius:6px;"><b>📞 Phone Number:</b> <a href="tel:${s.workerPhone}" style="color:#1a73e8; text-decoration:none; font-weight:bold;">${s.workerPhone}</a></p>
+                        <p style="font-size:15px; margin-bottom:10px;"><b>Skill / Hunar:</b> ${s.skill}</p>
+                        <p style="font-size:15px; margin-bottom:10px;"><b>Ilaqa (Area):</b> ${s.area}</p>
+                        <p style="font-size:15px; margin-bottom:10px;"><b>Demand Rate:</b> ${s.demand} (${s.rateType})</p>
+                        <div style="background:#f8f9fa; padding:15px; border-radius:8px; margin:15px 0; border:1px solid #e0e0e0;">
+                            <b style="display:block; margin-bottom:5px; color:#333;">Tafseel (Description):</b>
+                            <p style="color:#555; line-height:1.6; font-size:15px;">${s.title}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Load My Ads (Manage & Delete with Confirmation)
+        function loadMyAds() {
+            let user = JSON.parse(localStorage.getItem('logged_user'));
+            let listDiv = document.getElementById('myAdsList');
+            if(!listDiv) return;
+
+            let html = '';
+            if(user.activeRole === 'client') {
+                let jobs = JSON.parse(localStorage.getItem('rozgaar_jobs')) || [];
+                let myJobs = jobs.filter(j => j.clientPhone === user.phone);
+                if(myJobs.length === 0) {
+                    listDiv.innerHTML = `<p style="color:#777; font-size:14px;">Aapne abhi koi job post nahi ki.</p>`;
+                    return;
+                }
+                myJobs.forEach(j => {
+                    html += `<div class="card-item">
+                        <h4>[JOB] ${j.title}</h4>
+                        <p>Budget: ${j.budget} | Ilaqa: ${j.area}</p>
+                        <button class="btn btn-danger" style="margin-top:8px; padding:6px 12px; font-size:13px; width:auto;" onclick="confirmDeleteJob('${j.id}')">Delete Ad</button>
+                    </div>`;
+                });
+            } else {
+                let services = JSON.parse(localStorage.getItem('rozgaar_services')) || [];
+                let myServices = services.filter(s => s.workerPhone === user.phone);
+                if(myServices.length === 0) {
+                    listDiv.innerHTML = `<p style="color:#777; font-size:14px;">Aapne abhi koi service post nahi ki.</p>`;
+                    return;
+                }
+                myServices.forEach(s => {
+                    html += `<div class="card-item">
+                        <h4>[SERVICE] ${s.skill} - ${s.title}</h4>
+                        <p>Rate: ${s.demand} (${s.rateType}) | Ilaqa: ${s.area}</p>
+                        <button class="btn btn-danger" style="margin-top:8px; padding:6px 12px; font-size:13px; width:auto;" onclick="confirmDeleteService('${s.id}')">Delete Ad</button>
+                    </div>`;
+                });
+            }
+            listDiv.innerHTML = html;
+        }
+
+        // Delete Confirmations with Delete & Cancel buttons
+        function confirmDeleteJob(id) {
+            showConfirm("Ad Delete Karein?", "Kya aap waqai is ad ko delete karna chahte hain?", () => {
+                let jobs = JSON.parse(localStorage.getItem('rozgaar_jobs')) || [];
+                jobs = jobs.filter(j => String(j.id) !== String(id));
+                localStorage.setItem('rozgaar_jobs', JSON.stringify(jobs));
+                closeModal();
+                showAlert("Kamyabi", "Ad kamyabi se delete ho gayi hai!");
+                loadMyAds();
+            });
+        }
+
+        function confirmDeleteService(id) {
+            showConfirm("Ad Delete Karein?", "Kya aap waqai is ad ko delete karna chahte hain?", () => {
+                let services = JSON.parse(localStorage.getItem('rozgaar_services')) || [];
+                services = services.filter(s => String(s.id) !== String(id));
+                localStorage.setItem('rozgaar_services', JSON.stringify(services));
+                closeModal();
+                showAlert("Kamyabi", "Ad kamyabi se delete ho gayi hai!");
+                loadMyAds();
+            });
+        }
+
+        // Manual Browse All Active Posts
+        function loadManualBrowse() {
+            let jobs = JSON.parse(localStorage.getItem('rozgaar_jobs')) || [];
+            let services = JSON.parse(localStorage.getItem('rozgaar_services')) || [];
+            let listDiv = document.getElementById('manualList');
+            if(!listDiv) return;
+            let html = '';
+
+            if(jobs.length === 0 && services.length === 0) {
+                listDiv.innerHTML = `<p style="color:#777; font-size:14px;">Abhi koi post available nahi hai.</p>`;
+                return;
+            }
+
+            jobs.forEach((j) => {
+                html += `<div class="card-item" onclick="openFullDetail('${j.id}', 'job')">
+                    <h4>[JOB] ${j.clientName} (${j.area})</h4>
+                    <p>Kaam: ${j.title} | Budget: ${j.budget}</p>
+                    <p style="color:#1a73e8; font-weight:600;">📞 Phone: ${j.clientPhone}</p>
+                </div>`;
+            });
+
+            services.forEach((s) => {
+                html += `<div class="card-item" onclick="openFullDetail('${s.id}', 'service')">
+                    <h4>[SERVICE] ${s.workerName} (${s.skill})</h4>
+                    <p>Ilaqa: ${s.area} | Rate: ${s.demand} (${s.rateType})</p>
+                    <p style="color:#1a73e8; font-weight:600;">📞 Phone: ${s.workerPhone}</p>
+                </div>`;
+            });
+
+            listDiv.innerHTML = html;
+        }
+
+        // Dynamic Modal Handlers
+        function showAlert(title, htmlContent) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalBody').innerHTML = htmlContent;
+            document.getElementById('modalFooter').innerHTML = `<button class="btn" onclick="closeModal()">OK</button>`;
+            document.getElementById('customModal').style.display = 'flex';
+        }
+
+        function showConfirm(title, htmlContent, onConfirmCallback) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalBody').innerHTML = htmlContent;
+            document.getElementById('modalFooter').innerHTML = `
+                <button class="btn btn-danger" id="confirmYesBtn">Delete</button>
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            `;
+            document.getElementById('customModal').style.display = 'flex';
+            document.getElementById('confirmYesBtn').onclick = onConfirmCallback;
+        }
+
+        function closeModal() {
+            document.getElementById('customModal').style.display = 'none';
+        }
+
+        // Profile & Support
+        function updateProfile(event) {
+            event.preventDefault();
+            let user = JSON.parse(localStorage.getItem('logged_user'));
+            user.name = document.getElementById('editName').value;
+            user.area = document.getElementById('editArea').value;
+            user.password = document.getElementById('editPass').value;
+            let users = JSON.parse(localStorage.getItem('rozgaar_users')) || [];
+            users = users.map(u => u.phone === user.phone ? user : u);
+            localStorage.setItem('rozgaar_users', JSON.stringify(users));
+            localStorage.setItem('logged_user', JSON.stringify(user));
+            showAlert("Kamyabi", "Profile update ho gayi!");
+            renderDashboard();
+        }
+
+        function sendContactMsg(event) {
+            event.preventDefault();
+            let user = JSON.parse(localStorage.getItem('logged_user'));
+            let messages = JSON.parse(localStorage.getItem('rozgaar_messages')) || [];
+            messages.push({ name: user.name, phone: user.phone, role: user.activeRole, message: document.getElementById('contactMsg').value, date: new Date().toLocaleString() });
+            localStorage.setItem('rozgaar_messages', JSON.stringify(messages));
+            showAlert("Kamyabi", "Message admin tak bhej diya gaya hai!");
+            document.getElementById('contactMsg').value = '';
+        }
+
+        function openSidebar() { document.getElementById("mySidebar").style.width = "260px"; }
+        function closeSidebar() { document.getElementById("mySidebar").style.width = "0"; }
+        
+        function logout() {
+            localStorage.removeItem('logged_user');
+            window.location.reload();
+        }
+
+        window.onload = function() {
+            let loggedUser = JSON.parse(localStorage.getItem('logged_user'));
+            if(loggedUser) { startApp(loggedUser); }
+        }
+    </script>
+</body>
+</html>
